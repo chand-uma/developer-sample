@@ -10,20 +10,6 @@ namespace DeveloperSample.Container
     internal class ContainerTestClass : IContainerTestInterface
     {
     }
-
-    public interface IGreetingService
-    {
-        void Greet(string name);
-    }
-
-    public class GreetingService : IGreetingService
-    {
-        public void Greet(string name)
-        {
-            Console.WriteLine($"Hello, {name}!");
-        }
-    }
-
     public class ContainerTest
     {
         [Fact]
