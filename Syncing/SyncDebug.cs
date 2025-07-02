@@ -12,10 +12,12 @@ namespace DeveloperSample.Syncing
         public List<string> InitializeList(IEnumerable<string> items)
         {
             var bag = new ConcurrentBag<string>();
-            Parallel.ForEach(items, async i =>
+            
+            // Avoid async in Parallel.ForEach
+            Parallel.ForEach(items, i =>
             {
-                var r = await Task.Run(() => i).ConfigureAwait(false);
-                bag.Add(r);
+                // No async/await � just add each item directly
+                bag.Add(i);
             });
             var list = bag.ToList();
             return list;
@@ -23,28 +25,23 @@ namespace DeveloperSample.Syncing
 
         public Dictionary<int, string> InitializeDictionary(Func<int, string> getItem)
         {
-            var itemsToInitialize = Enumerable.Range(0, 100).ToList();
+            var itemsToInitialize = Enumerable.Range(0, 100);
 
-            var concurrentDictionary = new ConcurrentDictionary<int, string>();
-            var threads = Enumerable.Range(0, 3)
-                .Select(i => new Thread(() => {
-                    foreach (var item in itemsToInitialize)
-                    {
-                        concurrentDictionary.AddOrUpdate(item, getItem, (_, s) => s);
-                    }
-                }))
-                .ToList();
+            var concurrentDictionary = new ConcurrentDictionary<int, Lazy<string>>();
 
-            foreach (var thread in threads)
+            // Use multiple threads to fill the dictionary
+            Parallel.ForEach(itemsToInitialize, item =>
             {
-                thread.Start();
-            }
-            foreach (var thread in threads)
-            {
-                thread.Join();
-            }
+                // Get or add a Lazy<string> for this key. Only one Lazy.Value runs getItem().
+                var lazy = concurrentDictionary.GetOrAdd(item,
+                    key => new Lazy<string>(() => getItem(key), LazyThreadSafetyMode.ExecutionAndPublication));
 
-            return concurrentDictionary.ToDictionary(kv => kv.Key, kv => kv.Value);
+                // Force initialization of the value
+                _ = lazy.Value;
+            });
+
+            // Convert to a regular Dictionary<int,string> by extracting Lazy.Value
+            return concurrentDictionary.ToDictionary(kv => kv.Key, kv => kv.Value.Value);
         }
     }
 }

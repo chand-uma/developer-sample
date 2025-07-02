@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 
 namespace DeveloperSample.Container
@@ -10,9 +11,22 @@ namespace DeveloperSample.Container
     {
     }
 
+    public interface IGreetingService
+    {
+        void Greet(string name);
+    }
+
+    public class GreetingService : IGreetingService
+    {
+        public void Greet(string name)
+        {
+            Console.WriteLine($"Hello, {name}!");
+        }
+    }
+
     public class ContainerTest
     {
-        [Fact(Skip="Not implemented")]
+        [Fact]
         public void CanBindAndGetService()
         {
             var container = new Container();
